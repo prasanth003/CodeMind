@@ -3,6 +3,7 @@
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Topbar } from "@/components/layout/Topbar"
 import { FilePreviewPanel } from "@/components/layout/FilePreviewPanel"
+import { Footer } from "@/components/layout/Footer"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -41,6 +42,7 @@ export default function DashboardLayout({
                     </main>
                     <FilePreviewPanel />
                 </div>
+                <Footer />
             </div>
         </div>
     )

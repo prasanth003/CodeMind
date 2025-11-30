@@ -127,17 +127,12 @@ export default function LandingPage() {
       <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
       <div className="flex min-h-screen flex-col">
         <header className="flex h-14 items-center px-4 lg:px-6">
-          <div className="flex items-center gap-2 font-semibold">
+          <div className="flex items-center gap-2">
+            <img src="/icon.svg" alt="CodeMind Logo" className="h-6 w-6" />
             <span className="">CodeMind AI</span>
           </div>
           <nav className="ml-auto flex gap-4 sm:gap-6">
-            <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">
-              Features
-            </Link>
-            <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">
-              Pricing
-            </Link>
-            <Link className="text-sm font-medium hover:underline underline-offset-4" href="#">
+            <Link className="text-sm font-medium hover:underline underline-offset-4" href="https://prasanthsekar.info" target="_blank" rel="noopener noreferrer">
               About
             </Link>
           </nav>
@@ -145,7 +140,7 @@ export default function LandingPage() {
             <ModeToggle />
           </div>
         </header>
-        <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-24 bg-gradient-to-b from-background to-muted/20">
+        <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-18 bg-gradient-to-b from-background to-muted/20">
           <div className="text-center space-y-4 max-w-3xl mx-auto mb-12">
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight lg:text-7xl">
               Analyze your codebase <br />

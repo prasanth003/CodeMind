@@ -72,14 +72,20 @@ export function Sidebar({ className, collapsed, setCollapsed }: SidebarProps) {
                 <div className="px-3 py-2">
                     <div className="flex items-center justify-between mb-2 px-2">
                         {!collapsed && (
-                            <h2 className="text-lg font-semibold tracking-tight">
-                                CodeMind
-                            </h2>
+                            <div className="flex items-center gap-2">
+                                <img src="/icon.svg" alt="CodeMind Logo" className="h-6 w-6" />
+                                <h2 className="text-lg font-semibold tracking-tight">
+                                    CodeMind
+                                </h2>
+                            </div>
+                        )}
+                        {collapsed && (
+                            <img src="/icon.svg" alt="CodeMind Logo" className="h-6 w-6 mx-auto" />
                         )}
                         <Button
                             variant="ghost"
                             size="icon"
-                            className={cn("h-6 w-6", collapsed ? "mx-auto" : "")}
+                            className={cn("h-6 w-6", collapsed ? "mx-auto mt-2" : "")}
                             onClick={() => setCollapsed(!collapsed)}
                         >
                             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}

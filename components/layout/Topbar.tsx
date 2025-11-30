@@ -2,12 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
+
 import {
     RefreshCw,
-    Download,
-    User,
-    Bell,
     Plus,
     ChevronDown
 } from "lucide-react"
