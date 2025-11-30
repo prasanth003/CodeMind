@@ -4,21 +4,18 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
     LayoutDashboard,
-    FileCode,
     Network,
     Activity,
     GitFork,
     Lightbulb,
     BookOpen,
     Settings,
-    MessageSquare,
     Box,
     ChevronLeft,
-    ChevronRight,
 } from "lucide-react"
+import { useProject } from "@/contexts/ProjectContext"
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
     collapsed: boolean
@@ -27,12 +24,19 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Sidebar({ className, collapsed, setCollapsed }: SidebarProps) {
     const pathname = usePathname()
+    const { currentProjectId } = useProject()
 
     const items = [
         {
+            title: "Dashboard",
+            href: "/dashboard",
+            icon: LayoutDashboard,
+            alwaysVisible: true
+        },
+        {
             title: "Overview",
             href: "/dashboard/overview",
-            icon: LayoutDashboard,
+            icon: Activity, // Changed icon to distinguish
         },
         {
             title: "Component Tree",
@@ -67,10 +71,10 @@ export function Sidebar({ className, collapsed, setCollapsed }: SidebarProps) {
     ]
 
     return (
-        <div className={cn("pb-12 border-r bg-background transition-all duration-300", collapsed ? "w-16" : "w-64", className)}>
+        <div className={cn("relative pb-12 border-r bg-background transition-all duration-300", collapsed ? "w-16" : "w-64", className)}>
             <div className="space-y-4 py-4">
                 <div className="px-3 py-2">
-                    <div className="flex items-center justify-between mb-2 px-2">
+                    <div className="flex items-center justify-between mb-6 px-2">
                         {!collapsed && (
                             <div className="flex items-center gap-2">
                                 <img src="/icon.svg" alt="CodeMind Logo" className="h-6 w-6" />
@@ -80,32 +84,45 @@ export function Sidebar({ className, collapsed, setCollapsed }: SidebarProps) {
                             </div>
                         )}
                         {collapsed && (
-                            <img src="/icon.svg" alt="CodeMind Logo" className="h-6 w-6 mx-auto" />
+                            <div className="mx-auto">
+                                <img src="/icon.svg" alt="CodeMind Logo" className="h-6 w-6" />
+                            </div>
                         )}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn("h-6 w-6", collapsed ? "mx-auto mt-2" : "")}
-                            onClick={() => setCollapsed(!collapsed)}
-                        >
-                            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                        </Button>
                     </div>
+
+                    {/* Floating Minimize Button */}
+                    <Button
+                        variant="default"
+                        size="icon"
+                        className={cn(
+                            "absolute -right-3 top-6 h-6 w-6 rounded-full shadow-md z-50 transition-transform duration-300",
+                            collapsed ? "rotate-180" : ""
+                        )}
+                        onClick={() => setCollapsed(!collapsed)}
+                    >
+                        <ChevronLeft className="h-3 w-3" />
+                    </Button>
+
                     <div className="space-y-1">
-                        {items.map((item) => (
-                            <Button
-                                key={item.href}
-                                variant={pathname === item.href ? "secondary" : "ghost"}
-                                className={cn("w-full", collapsed ? "justify-center px-2" : "justify-start")}
-                                asChild
-                                title={collapsed ? item.title : undefined}
-                            >
-                                <Link href={item.href}>
-                                    <item.icon className={cn("h-4 w-4", collapsed ? "mr-0" : "mr-2")} />
-                                    {!collapsed && item.title}
-                                </Link>
-                            </Button>
-                        ))}
+                        {items.map((item) => {
+                            // Hide project specific items if no project selected, except Dashboard
+                            if (!item.alwaysVisible && !currentProjectId) return null;
+
+                            return (
+                                <Button
+                                    key={item.href}
+                                    variant={pathname === item.href ? "secondary" : "ghost"}
+                                    className={cn("w-full", collapsed ? "justify-center px-2" : "justify-start")}
+                                    asChild
+                                    title={collapsed ? item.title : undefined}
+                                >
+                                    <Link href={item.href}>
+                                        <item.icon className={cn("h-4 w-4", collapsed ? "mr-0" : "mr-2")} />
+                                        {!collapsed && item.title}
+                                    </Link>
+                                </Button>
+                            )
+                        })}
                     </div>
                 </div>
                 <div className="px-3 py-2">
@@ -118,7 +135,7 @@ export function Sidebar({ className, collapsed, setCollapsed }: SidebarProps) {
                         <Button variant="ghost" className={cn("w-full", collapsed ? "justify-center px-2" : "justify-start")} asChild title={collapsed ? "Settings" : undefined}>
                             <Link href="/dashboard/settings">
                                 <Settings className={cn("h-4 w-4", collapsed ? "mr-0" : "mr-2")} />
-                                {!collapsed && "Settings"}
+                                <span className={cn(collapsed ? "hidden" : "")}>Settings</span>
                             </Link>
                         </Button>
                     </div>

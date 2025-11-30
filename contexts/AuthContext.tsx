@@ -71,7 +71,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = async () => {
         try {
             await signOut(auth)
+            // Clear all storage
+            localStorage.clear()
+            sessionStorage.clear()
+
+            // Clear IndexedDB
+            try {
+                const { del } = await import('idb-keyval')
+                await del('codemind-projects')
+                await del('codemind-current-id')
+            } catch (e) {
+                console.error("Failed to clear IndexedDB", e)
+            }
+
             router.push("/")
+            // Force reload to clear any in-memory state
+            window.location.reload()
         } catch (error) {
             console.error("Error signing out", error)
         }

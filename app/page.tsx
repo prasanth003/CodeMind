@@ -9,6 +9,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Github, Code2, ArrowRight, FileArchive, CheckCircle2, Loader2 } from "lucide-react"
 import { ModeToggle } from "@/components/ui/mode-toggle"
 import Link from "next/link"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import { LoginButtons } from "@/components/auth/LoginButtons"
 import { LoginModal } from "@/components/auth/LoginModal"
@@ -19,7 +29,7 @@ import { AnalysisEngine } from "@/lib/analysis/engine"
 import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
-  const { user } = useAuth()
+  const { user, loading, logout } = useAuth()
   const { setIsAnalyzing, isAnalyzing, addProject } = useProject()
   const router = useRouter()
   const [githubUrl, setGithubUrl] = useState("")
@@ -114,9 +124,9 @@ export default function LandingPage() {
 
       // 5. Redirect
       router.push("/dashboard/overview");
-    } catch (error: any) {
+    } catch (error) {
       console.error("GitHub analysis failed:", error);
-      alert(error.message || "Failed to analyze repository. Please check the URL and try again.");
+      alert((error as Error).message || "Failed to analyze repository. Please check the URL and try again.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -131,14 +141,63 @@ export default function LandingPage() {
             <img src="/icon.svg" alt="CodeMind Logo" className="h-6 w-6" />
             <span className="">CodeMind AI</span>
           </div>
-          <nav className="ml-auto flex gap-4 sm:gap-6">
+          <nav className="ml-auto flex gap-4 sm:gap-6 items-center">
             <Link className="text-sm font-medium hover:underline underline-offset-4" href="https://prasanthsekar.info" target="_blank" rel="noopener noreferrer">
               About
             </Link>
-          </nav>
-          <div className="ml-4">
+            {loading ? (
+              <div className="h-8 w-20 bg-muted animate-pulse rounded-md" />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "@user"} />
+                      <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user?.displayName || "User"}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email || "user@example.com"}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/overview" className="w-full cursor-pointer">
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/settings" className="w-full cursor-pointer">
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      await logout()
+                    } catch (error) {
+                      console.error("Failed to log out", error)
+                    }
+                  }}>
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setShowLoginModal(true)}>
+                Log in
+              </Button>
+            )}
             <ModeToggle />
-          </div>
+          </nav>
         </header>
         <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-18 bg-gradient-to-b from-background to-muted/20">
           <div className="text-center space-y-4 max-w-3xl mx-auto mb-12">
@@ -189,10 +248,10 @@ export default function LandingPage() {
                       </div>
                     )}
                   </div>
-                  <div className="mt-6 flex justify-end">
+                  <div className="mt-6 flex flex-col gap-2">
                     <Button
                       disabled={!uploadedFile || isAnalyzing}
-                      className="w-full sm:w-auto"
+                      className="w-full"
                       onClick={handleAnalyze}
                     >
                       {isAnalyzing ? (
@@ -206,6 +265,9 @@ export default function LandingPage() {
                         </>
                       )}
                     </Button>
+                    <p className="text-[10px] text-center text-muted-foreground">
+                      We do not store your code permanently. All analysis happens in your browser or temporary secure storage.
+                    </p>
                   </div>
                 </TabsContent>
 
@@ -225,10 +287,63 @@ export default function LandingPage() {
                     <div className="bg-muted/50 p-4 rounded-md text-sm text-muted-foreground">
                       <p>Make sure the repository is public or you have provided an access token in settings.</p>
                     </div>
-                    <div className="flex justify-end">
+                    <nav className="flex items-center gap-4">
+                      {loading ? (
+                        <div className="h-9 w-24 bg-muted animate-pulse rounded-md" />
+                      ) : user ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                              <Avatar className="h-9 w-9">
+                                <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "@user"} />
+                                <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
+                              </Avatar>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal">
+                              <div className="flex flex-col space-y-1">
+                                <p className="text-sm font-medium leading-none">{user?.displayName || "User"}</p>
+                                <p className="text-xs leading-none text-muted-foreground">
+                                  {user?.email || "user@example.com"}
+                                </p>
+                              </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuGroup>
+                              <DropdownMenuItem asChild>
+                                <Link href="/dashboard/overview" className="w-full cursor-pointer">
+                                  Dashboard
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href="/dashboard/settings" className="w-full cursor-pointer">
+                                  Settings
+                                </Link>
+                              </DropdownMenuItem>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={async () => {
+                              try {
+                                await logout()
+                              } catch (error) {
+                                console.error("Failed to log out", error)
+                              }
+                            }}>
+                              Log out
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <Button variant="ghost" size="sm" onClick={() => setShowLoginModal(true)}>
+                          Log in
+                        </Button>
+                      )}
+                    </nav>
+                    <div className="flex flex-col gap-2">
                       <Button
                         disabled={!githubUrl || isAnalyzing}
-                        className="w-full sm:w-auto"
+                        className="w-full"
                         onClick={handleGithubAnalyze}
                       >
                         {isAnalyzing ? (
@@ -242,6 +357,9 @@ export default function LandingPage() {
                           </>
                         )}
                       </Button>
+                      <p className="text-[10px] text-center text-muted-foreground">
+                        We do not store your code permanently. All analysis happens in your browser or temporary secure storage.
+                      </p>
                     </div>
                   </div>
                 </TabsContent>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { ArrowRightLeft, FileCode, Search, ArrowRight, Layers, Box } from 'lucide-react';
+import { ArrowRightLeft, FileCode, Search, ArrowRight, Layers, Box, Activity } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -102,7 +102,17 @@ export function DependencyGraph({ data }: DependencyGraphProps) {
                                     onClick={() => setSelectedId(node.id)}
                                 >
                                     <div className="flex items-center gap-3 overflow-hidden">
-                                        {isCore ? <Box className="w-4 h-4 text-amber-500 shrink-0" /> : <FileCode className="w-4 h-4 text-muted-foreground shrink-0" />}
+                                        {isCore ? (
+                                            <Box className="w-4 h-4 text-amber-500 shrink-0" />
+                                        ) : node.path.includes('.component.ts') ? (
+                                            <Box className="w-4 h-4 text-red-500 shrink-0" />
+                                        ) : node.path.includes('.service.ts') ? (
+                                            <Activity className="w-4 h-4 text-blue-500 shrink-0" />
+                                        ) : node.path.includes('.module.ts') ? (
+                                            <Layers className="w-4 h-4 text-purple-500 shrink-0" />
+                                        ) : (
+                                            <FileCode className="w-4 h-4 text-muted-foreground shrink-0" />
+                                        )}
                                         <div className="flex flex-col overflow-hidden">
                                             <span className="truncate font-medium">{node.path.split('/').pop()}</span>
                                             <span className="truncate text-xs text-muted-foreground opacity-70">{node.path}</span>

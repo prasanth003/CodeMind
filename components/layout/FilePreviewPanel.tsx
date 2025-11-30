@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { X, Copy, FileCode, Check } from "lucide-react"
 import { useProject } from "@/contexts/ProjectContext"
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -55,7 +55,7 @@ export function FilePreviewPanel({
     }
 
     return (
-        <div className={cn("w-[600px] border-l bg-background flex flex-col h-full shrink-0 transition-all duration-300", className)}>
+        <div className={cn("w-[450px] border-l bg-background flex flex-col h-full shrink-0 transition-all duration-300", className)}>
             <div className="flex items-center justify-between p-4 border-b bg-muted/30">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     <FileCode className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -82,7 +82,7 @@ export function FilePreviewPanel({
                     </Button>
                 </div>
             </div>
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 overflow-y-auto">
                 <SyntaxHighlighter
                     language={getLanguage(selectedFile.name)}
                     style={vscDarkPlus}
@@ -90,13 +90,13 @@ export function FilePreviewPanel({
                         margin: 0,
                         padding: '1rem',
                         background: 'transparent',
-                        fontSize: '0.875rem',
+                        fontSize: '0.875rem'
                     }}
-                    showLineNumbers
-                    wrapLines
                 >
                     {selectedFile.content || '// No content available'}
                 </SyntaxHighlighter>
+                <ScrollBar orientation="horizontal" />
+                <ScrollBar orientation="vertical" />
             </ScrollArea>
         </div>
     )

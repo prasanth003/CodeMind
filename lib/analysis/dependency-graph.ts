@@ -35,7 +35,8 @@ export class DependencyGraphBuilder {
     }
 
     private isCodeFile(path: string): boolean {
-        return /\.(ts|tsx|js|jsx|css|scss|less)$/.test(path);
+        return /\.(ts|tsx|js|jsx|css|scss|less)$/.test(path) ||
+            /\.(component|service|module|pipe|guard|directive)\.ts$/.test(path);
     }
 
     private extractDependencies(content: string, currentPath: string): string[] {

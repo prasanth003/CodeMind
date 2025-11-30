@@ -1,166 +1,97 @@
-"use client";
+"use client"
 
-import { StatsCard } from "@/components/dashboard/StatsCard"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import {
-    FileCode,
-    Box,
-    Network,
-    Activity,
-    ArrowRight,
-    FileText,
-    Layers,
-    Loader2
-} from "lucide-react"
-import Link from "next/link"
+import { Plus, FolderOpen, Clock, ArrowRight, Trash2 } from "lucide-react"
 import { useProject } from "@/contexts/ProjectContext"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ComponentTree } from "@/components/analysis/ComponentTree"
-import { DependencyGraph } from "@/components/analysis/DependencyGraph"
-import { ApiFlow } from "@/components/analysis/ApiFlow"
-import { AnalysisEngine } from "@/lib/analysis/engine"
-import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { UploadModal } from "@/components/dashboard/UploadModal"
 
-export default function DashboardPage() {
-    const { analysisData, projectData, isAnalyzing, setIsAnalyzing, updateAnalysis, currentProjectId } = useProject();
-    const [reanalyzing, setReanalyzing] = useState(false);
+export default function DashboardLandingPage() {
+    const { projects, switchProject, removeProject } = useProject()
+    const router = useRouter()
 
-    const handleReanalyze = async () => {
-        if (!projectData || !currentProjectId) return;
+    const handleProjectClick = (projectId: string) => {
+        switchProject(projectId)
+        router.push("/dashboard/overview")
+    }
 
-        try {
-            setReanalyzing(true);
-            setIsAnalyzing(true);
-
-            // Run Analysis
-            const engine = new AnalysisEngine(projectData);
-            const analysisResults = await engine.analyze();
-
-            // Update Context
-            await updateAnalysis(currentProjectId, analysisResults);
-
-        } catch (error) {
-            console.error("Re-analysis failed:", error);
-            // Optionally show toast
-        } finally {
-            setReanalyzing(false);
-            setIsAnalyzing(false);
+    const handleDelete = async (e: React.MouseEvent, projectId: string) => {
+        e.stopPropagation()
+        if (confirm("Are you sure you want to delete this project?")) {
+            await removeProject(projectId)
         }
-    };
-
-    if (!analysisData && !isAnalyzing) {
-        return (
-            <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-                <h2 className="text-2xl font-bold">No Analysis Data</h2>
-                <p className="text-muted-foreground">Run an analysis to see project insights.</p>
-                <Button onClick={handleReanalyze} disabled={reanalyzing}>
-                    {reanalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Layers className="mr-2 h-4 w-4" />}
-                    Start Analysis
-                </Button>
-            </div>
-        );
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-                <div className="flex items-center gap-2">
-                    <Button onClick={handleReanalyze} disabled={reanalyzing}>
-                        {reanalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Layers className="mr-2 h-4 w-4" />}
-                        Re-Analyze Project
-                    </Button>
-                    <Button variant="outline">
-                        <FileText className="mr-2 h-4 w-4" />
-                        Generate Documentation
-                    </Button>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Welcome back!</h1>
+                    <p className="text-muted-foreground">
+                        Select a project to analyze or start a new one.
+                    </p>
                 </div>
+                <UploadModal>
+                    <Button className="gap-2">
+                        <Plus className="h-4 w-4" />
+                        New Project
+                    </Button>
+                </UploadModal>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatsCard
-                    title="Total Files"
-                    value={projectData?.fileCount.toString() || "0"}
-                    icon={FileCode}
-                    description="Project Files"
-                />
-                <StatsCard
-                    title="Components"
-                    value={analysisData?.components.length.toString() || "0"}
-                    icon={Box}
-                    description="Detected Components"
-                />
-                <StatsCard
-                    title="Dependencies"
-                    value={analysisData?.dependencies.length.toString() || "0"}
-                    icon={Network}
-                    description="File Dependencies"
-                />
-                <StatsCard
-                    title="API Calls"
-                    value={analysisData?.apiFlow?.length.toString() || "0"}
-                    icon={Activity}
-                    description="Detected Endpoints"
-                />
-            </div>
-
-            <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="components">Component Tree</TabsTrigger>
-                    <TabsTrigger value="dependencies">Dependency Graph</TabsTrigger>
-                    <TabsTrigger value="api">API Flow</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="overview" className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                        <div className="col-span-4 rounded-xl border bg-card text-card-foreground shadow">
-                            <div className="p-6 flex flex-col space-y-3">
-                                <h3 className="font-semibold leading-none tracking-tight">Recent Activity</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    Latest analysis results and changes.
-                                </p>
-                                <div className="pt-4 text-sm text-muted-foreground">
-                                    Analysis completed. Found {analysisData?.components.length} components and {analysisData?.apiFlow?.length || 0} API calls.
-                                </div>
-                            </div>
+            {projects.length === 0 ? (
+                <Card className="border-dashed">
+                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="rounded-full bg-primary/10 p-4 mb-4">
+                            <FolderOpen className="h-8 w-8 text-primary" />
                         </div>
-                        <div className="col-span-3 rounded-xl border bg-card text-card-foreground shadow">
-                            <div className="p-6 flex flex-col space-y-3">
-                                <h3 className="font-semibold leading-none tracking-tight">Quick Actions</h3>
-                                <div className="grid gap-2 pt-4">
-                                    <Button variant="ghost" className="justify-start" asChild>
-                                        <Link href="/dashboard/components">
-                                            <Box className="mr-2 h-4 w-4" />
-                                            View Component Tree
-                                            <ArrowRight className="ml-auto h-4 w-4" />
-                                        </Link>
+                        <h3 className="text-lg font-semibold mb-2">No projects found</h3>
+                        <p className="text-muted-foreground mb-6 max-w-sm">
+                            Get started by uploading your first project zip file or importing from GitHub.
+                        </p>
+                        <UploadModal>
+                            <Button>Create Project</Button>
+                        </UploadModal>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {projects.map((project) => (
+                        <Card
+                            key={project.id}
+                            className="cursor-pointer hover:border-primary/50 transition-colors group relative"
+                            onClick={() => handleProjectClick(project.id)}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="flex items-center justify-between">
+                                    <span className="truncate">{project.metadata.name}</span>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={(e) => handleDelete(e, project.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="ghost" className="justify-start" asChild>
-                                        <Link href="/dashboard/dependencies">
-                                            <Network className="mr-2 h-4 w-4" />
-                                            Analyze Dependencies
-                                            <ArrowRight className="ml-auto h-4 w-4" />
-                                        </Link>
-                                    </Button>
+                                </CardTitle>
+                                <CardDescription>
+                                    v{project.metadata.version} • {project.metadata.framework || "Unknown Framework"}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
+                                    <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {project.lastAccessed ? new Date(project.lastAccessed).toLocaleDateString() : "Just now"}
+                                    </div>
+                                    <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity -translate-x-2 group-hover:translate-x-0 duration-300" />
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="components" className="space-y-4">
-                    <ComponentTree data={analysisData?.componentTree || []} />
-                </TabsContent>
-
-                <TabsContent value="dependencies" className="space-y-4">
-                    <DependencyGraph data={analysisData?.dependencies || []} />
-                </TabsContent>
-
-                <TabsContent value="api" className="space-y-4">
-                    <ApiFlow data={analysisData?.apiFlow || []} />
-                </TabsContent>
-            </Tabs>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
         </div>
     )
 }

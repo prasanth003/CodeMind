@@ -91,77 +91,176 @@ export class ComponentTreeBuilder {
     private analyzeAngularComponents(files: Record<string, string>) {
         const selectorMap = new Map<string, string>(); // selector -> filePath
         const classMap = new Map<string, string>(); // className -> filePath
+        const fileToClass = new Map<string, string>(); // filePath -> className
 
-        // 1. Identify all components and their selectors
+        // 1. Identify all components, modules, and their selectors
         for (const [path, content] of Object.entries(files)) {
             if (!path.endsWith('.ts')) continue;
 
             const selector = this.extractAngularSelector(content);
             const className = this.extractAngularClassName(content);
+            const isComponent = content.includes('@Component');
+            const isModule = content.includes('@NgModule');
 
             if (className) {
-                if (selector) {
-                    selectorMap.set(selector, path);
-                }
+                if (selector) selectorMap.set(selector, path);
                 classMap.set(className, path);
+                fileToClass.set(path, className);
 
-                this.components.set(path, {
-                    id: path,
-                    name: className,
-                    type: 'component',
-                    filePath: path,
-                    children: []
-                });
+                if (isComponent || isModule) {
+                    this.components.set(path, {
+                        id: path,
+                        name: className,
+                        type: isModule ? 'layout' : 'component', // Treat modules as layout nodes for grouping
+                        filePath: path,
+                        children: []
+                    });
+                }
             }
         }
 
         // 2. Build relationships
+        // Strategy: 
+        // a. Template usage (Parent uses Child selector)
+        // b. Module declarations (Module declares Component)
+        // c. Directory structure (Fallback)
+
         for (const [path, node] of this.components.entries()) {
             const content = files[path];
 
-            // A. Check Template Usage (Selectors)
-            let template = this.extractAngularTemplate(content);
-            if (!template) {
-                const templateUrl = this.extractAngularTemplateUrl(content);
-                if (templateUrl) {
-                    const dir = path.substring(0, path.lastIndexOf('/'));
-                    const templatePath = `${dir}/${templateUrl.replace(/^\.\//, '')}`;
-                    template = files[templatePath] || '';
+            // A. Check Template Usage (for Components)
+            if (node.type === 'component') {
+                let template = this.extractAngularTemplate(content);
+                if (!template) {
+                    const templateUrl = this.extractAngularTemplateUrl(content);
+                    if (templateUrl) {
+                        const dir = path.substring(0, path.lastIndexOf('/'));
+                        const templatePath = `${dir}/${templateUrl.replace(/^\.\//, '')}`;
+                        template = files[templatePath] || '';
+                    }
                 }
-            }
 
-            if (template) {
-                for (const [selector, childPath] of selectorMap.entries()) {
-                    if (childPath === path) continue;
-                    // Check for <app-child ... > or <app-child>
-                    const regex = new RegExp(`<${selector}[\\s>]`);
-                    if (regex.test(template)) {
-                        if (!node.children.includes(childPath)) {
-                            node.children.push(childPath);
-                            const childNode = this.components.get(childPath);
-                            if (childNode) childNode.parentId = path;
+                if (template) {
+                    for (const [selector, childPath] of selectorMap.entries()) {
+                        if (childPath === path) continue;
+                        const regex = new RegExp(`<${selector}[\\s>]`);
+                        if (regex.test(template)) {
+                            this.linkParentChild(path, childPath);
                         }
                     }
                 }
             }
 
-            // B. Check Standalone Imports (Class Names)
-            // imports: [ChildComponent, CommonModule]
-            const importsMatch = content.match(/imports:\s*\[([^\]]+)\]/);
-            if (importsMatch) {
-                const importsList = importsMatch[1].split(',').map(s => s.trim());
-                for (const importName of importsList) {
-                    const childPath = classMap.get(importName);
-                    if (childPath && childPath !== path) {
-                        if (!node.children.includes(childPath)) {
-                            node.children.push(childPath);
-                            const childNode = this.components.get(childPath);
-                            if (childNode) childNode.parentId = path;
+            // B. Check Module Declarations/Imports/Exports
+            if (node.type === 'layout') { // It's a module
+                const declarationsMatch = content.match(/declarations:\s*\[([^\]]+)\]/);
+                const importsMatch = content.match(/imports:\s*\[([^\]]+)\]/);
+                const exportsMatch = content.match(/exports:\s*\[([^\]]+)\]/);
+
+                const processList = (listStr: string) => {
+                    const list = listStr.split(',').map(s => s.trim());
+                    for (const item of list) {
+                        const childPath = classMap.get(item);
+                        if (childPath && childPath !== path) {
+                            this.linkParentChild(path, childPath);
+                        }
+                    }
+                };
+
+                if (declarationsMatch) processList(declarationsMatch[1]);
+                if (importsMatch) processList(importsMatch[1]);
+                if (exportsMatch) processList(exportsMatch[1]);
+
+                // C. Check Lazy Loading (loadChildren) in Routing Modules
+                // Look for: loadChildren: () => import('./path/to/module').then(m => m.ModuleName)
+                const lazyRegex = /loadChildren:\s*\(\)\s*=>\s*import\(['"]([^'"]+)['"]\)/g;
+                let match;
+                while ((match = lazyRegex.exec(content)) !== null) {
+                    const importPath = match[1];
+                    const resolvedPath = this.resolvePath(path, importPath);
+
+                    // Try to find the module file at this path
+                    // It might be resolvedPath + '.ts' or resolvedPath + '/module-name.ts'
+                    // We search our components map for a match
+                    for (const [compPath, compNode] of this.components.entries()) {
+                        if (compNode.type === 'layout' && compPath.startsWith(resolvedPath)) {
+                            this.linkParentChild(path, compPath);
                         }
                     }
                 }
             }
         }
+
+        // 3. Post-processing: Directory-based hierarchy for orphans
+        // If a component has no parent, try to find a "parent" component/module in the parent directory
+        // We sort by path length descending to handle deepest orphans first
+        const sortedPaths = Array.from(this.components.keys()).sort((a, b) => b.length - a.length);
+
+        for (const path of sortedPaths) {
+            const node = this.components.get(path);
+            if (!node || node.parentId) continue;
+
+            // Skip root app component/module
+            if (path.includes('app.component.ts') || path.includes('app.module.ts')) continue;
+
+            const dir = path.substring(0, path.lastIndexOf('/'));
+
+            // 1. Look for a Module in the SAME directory
+            let parentFound = false;
+            for (const [potentialParentPath, parentNode] of this.components.entries()) {
+                // Check if potential parent is a module in the same directory
+                const potentialParentDir = potentialParentPath.substring(0, potentialParentPath.lastIndexOf('/'));
+                if (potentialParentPath !== path && potentialParentDir === dir && parentNode.type === 'layout') {
+                    this.linkParentChild(potentialParentPath, path);
+                    parentFound = true;
+                    break;
+                }
+            }
+            if (parentFound) continue;
+
+            // 2. Look for a Module/Component in the PARENT directory
+            const parentDir = dir.substring(0, dir.lastIndexOf('/'));
+            if (parentDir) {
+                for (const [potentialParentPath, parentNode] of this.components.entries()) {
+                    // Check if potential parent is in the parent directory (direct child of parentDir)
+                    const potentialParentDir = potentialParentPath.substring(0, potentialParentPath.lastIndexOf('/'));
+                    if (potentialParentDir === parentDir && parentNode.type === 'layout') {
+                        this.linkParentChild(potentialParentPath, path);
+                        parentFound = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private linkParentChild(parentId: string, childId: string) {
+        const parent = this.components.get(parentId);
+        const child = this.components.get(childId);
+
+        if (parent && child && !parent.children.includes(childId)) {
+            // Avoid cycles
+            if (this.isAncestor(childId, parentId)) return;
+
+            // If child already has a parent, we might be moving it or adding a second parent (graph vs tree)
+            // For tree visualization, we prefer single parent. 
+            // If the new parent is a Module and old was a Component, keep Component (more specific).
+            // If both are same type, keep first? Or allow multiple? 
+            // Let's allow reparenting if the new parent is "closer" or more specific, but simple logic for now:
+            if (!child.parentId) {
+                parent.children.push(childId);
+                child.parentId = parentId;
+            }
+        }
+    }
+
+    private isAncestor(potentialAncestor: string, node: string): boolean {
+        let current = this.components.get(node);
+        while (current && current.parentId) {
+            if (current.parentId === potentialAncestor) return true;
+            current = this.components.get(current.parentId);
+        }
+        return false;
     }
 
     private extractReactComponentName(content: string, path: string): string | null {
