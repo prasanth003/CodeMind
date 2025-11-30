@@ -16,11 +16,16 @@ import {
     Settings,
     MessageSquare,
     Box,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react"
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+    collapsed: boolean
+    setCollapsed: (collapsed: boolean) => void
+}
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, collapsed, setCollapsed }: SidebarProps) {
     const pathname = usePathname()
 
     const items = [
@@ -62,40 +67,53 @@ export function Sidebar({ className }: SidebarProps) {
     ]
 
     return (
-        <div className={cn("pb-12 w-64 border-r bg-background", className)}>
+        <div className={cn("pb-12 border-r bg-background transition-all duration-300", collapsed ? "w-16" : "w-64", className)}>
             <div className="space-y-4 py-4">
                 <div className="px-3 py-2">
-                    <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-                        CodeMind AI
-                    </h2>
+                    <div className="flex items-center justify-between mb-2 px-2">
+                        {!collapsed && (
+                            <h2 className="text-lg font-semibold tracking-tight">
+                                CodeMind
+                            </h2>
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-6 w-6", collapsed ? "mx-auto" : "")}
+                            onClick={() => setCollapsed(!collapsed)}
+                        >
+                            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                        </Button>
+                    </div>
                     <div className="space-y-1">
                         {items.map((item) => (
                             <Button
                                 key={item.href}
                                 variant={pathname === item.href ? "secondary" : "ghost"}
-                                className="w-full justify-start"
+                                className={cn("w-full", collapsed ? "justify-center px-2" : "justify-start")}
                                 asChild
+                                title={collapsed ? item.title : undefined}
                             >
                                 <Link href={item.href}>
-                                    <item.icon className="mr-2 h-4 w-4" />
-                                    {item.title}
+                                    <item.icon className={cn("h-4 w-4", collapsed ? "mr-0" : "mr-2")} />
+                                    {!collapsed && item.title}
                                 </Link>
                             </Button>
                         ))}
                     </div>
                 </div>
                 <div className="px-3 py-2">
-                    <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
-                        Tools
-                    </h2>
+                    {!collapsed && (
+                        <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
+                            Tools
+                        </h2>
+                    )}
                     <div className="space-y-1">
-                        <Button variant="ghost" className="w-full justify-start">
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            Chat Assistant
-                        </Button>
-                        <Button variant="ghost" className="w-full justify-start">
-                            <Settings className="mr-2 h-4 w-4" />
-                            Settings
+                        <Button variant="ghost" className={cn("w-full", collapsed ? "justify-center px-2" : "justify-start")} asChild title={collapsed ? "Settings" : undefined}>
+                            <Link href="/dashboard/settings">
+                                <Settings className={cn("h-4 w-4", collapsed ? "mr-0" : "mr-2")} />
+                                {!collapsed && "Settings"}
+                            </Link>
                         </Button>
                     </div>
                 </div>

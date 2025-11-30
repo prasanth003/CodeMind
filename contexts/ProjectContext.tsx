@@ -9,6 +9,13 @@ interface AnalysisResult {
     routes: any[]; // To be defined
 }
 
+interface ProjectMetadata {
+    name: string;
+    version: string;
+    framework?: string;
+    frameworkVersion?: string;
+}
+
 interface ProjectContextType {
     projectData: ProjectData | null;
     setProjectData: (data: ProjectData | null) => void;
@@ -16,6 +23,10 @@ interface ProjectContextType {
     setAnalysisData: (data: AnalysisResult | null) => void;
     isAnalyzing: boolean;
     setIsAnalyzing: (isAnalyzing: boolean) => void;
+    selectedFile: FileNode | null;
+    setSelectedFile: (file: FileNode | null) => void;
+    projectMetadata: ProjectMetadata | null;
+    setProjectMetadata: (metadata: ProjectMetadata | null) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -24,6 +35,8 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     const [projectData, setProjectData] = useState<ProjectData | null>(null);
     const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<FileNode | null>(null);
+    const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata | null>(null);
 
     return (
         <ProjectContext.Provider
@@ -34,6 +47,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
                 setAnalysisData,
                 isAnalyzing,
                 setIsAnalyzing,
+                selectedFile,
+                setSelectedFile,
+                projectMetadata,
+                setProjectMetadata,
             }}
         >
             {children}

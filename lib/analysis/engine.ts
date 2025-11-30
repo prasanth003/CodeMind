@@ -42,20 +42,38 @@ export class AnalysisEngine {
 
         for (const [path, content] of Object.entries(files)) {
             if (path.endsWith('.tsx') || path.endsWith('.jsx')) {
-                // Simple regex to find function components
-                // export default function ComponentName
-                // export const ComponentName = () =>
-                const functionMatch = content.match(/export\s+default\s+function\s+(\w+)/);
-                const constMatch = content.match(/export\s+const\s+(\w+)\s*=\s*(\(|async)/);
+                // Regex to find various component definitions
+                // 1. export default function ComponentName
+                // 2. export function ComponentName
+                // 3. export const ComponentName = ...
+                // 4. function ComponentName (if exported later)
+                // 5. const ComponentName = ... (if exported later)
 
-                if (functionMatch || constMatch) {
-                    const name = functionMatch ? functionMatch[1] : constMatch![1];
-                    components.push({
-                        name,
-                        path,
-                        type: 'component',
-                        lineCount: content.split('\n').length
-                    });
+                const patterns = [
+                    /export\s+default\s+function\s+(\w+)/,
+                    /export\s+function\s+(\w+)/,
+                    /export\s+const\s+(\w+)\s*=\s*(?:\(|async)/,
+                    /function\s+(\w+)\s*\(/,
+                    /const\s+(\w+)\s*=\s*(?:\(|async\s*\()/
+                ];
+
+                const detectedNames = new Set<string>();
+
+                for (const pattern of patterns) {
+                    const match = content.match(pattern);
+                    if (match && match[1]) {
+                        const name = match[1];
+                        // Filter out common non-component names if needed, or rely on capitalization convention
+                        if (/^[A-Z]/.test(name) && !detectedNames.has(name)) {
+                            detectedNames.add(name);
+                            components.push({
+                                name,
+                                path,
+                                type: 'component',
+                                lineCount: content.split('\n').length
+                            });
+                        }
+                    }
                 }
             }
         }
@@ -95,8 +113,28 @@ export class AnalysisEngine {
 
     private detectDependencies() {
         const dependencies: any[] = [];
-        // Placeholder for dependency analysis
-        // In a real implementation, we would parse imports
+        const { files } = this.data;
+
+        for (const [path, content] of Object.entries(files)) {
+            if (path.endsWith('.tsx') || path.endsWith('.jsx') || path.endsWith('.ts') || path.endsWith('.js')) {
+                // Match import statements
+                // import { Foo } from './Foo'
+                // import Foo from './Foo'
+                // import './style.css'
+                const importRegex = /import\s+(?:(?:[\w*\s{},]*)\s+from\s+)?['"]([^'"]+)['"]/g;
+                let match;
+
+                while ((match = importRegex.exec(content)) !== null) {
+                    const importPath = match[1];
+                    // Only track local imports or specific libraries
+                    dependencies.push({
+                        source: path,
+                        target: importPath,
+                        type: importPath.startsWith('.') ? 'local' : 'external'
+                    });
+                }
+            }
+        }
         return dependencies;
     }
 }

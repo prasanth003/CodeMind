@@ -5,7 +5,7 @@ import { Topbar } from "@/components/layout/Topbar"
 import { FilePreviewPanel } from "@/components/layout/FilePreviewPanel"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 export default function DashboardLayout({
     children,
@@ -14,6 +14,7 @@ export default function DashboardLayout({
 }) {
     const { user, loading } = useAuth()
     const router = useRouter()
+    const [collapsed, setCollapsed] = useState(false)
 
     useEffect(() => {
         if (!loading && !user) {
@@ -31,14 +32,14 @@ export default function DashboardLayout({
 
     return (
         <div className="flex h-screen overflow-hidden bg-background">
-            <Sidebar className="hidden md:block" />
+            <Sidebar className="hidden md:block" collapsed={collapsed} setCollapsed={setCollapsed} />
             <div className="flex flex-1 flex-col overflow-hidden">
                 <Topbar />
                 <div className="flex flex-1 overflow-hidden">
                     <main className="flex-1 overflow-y-auto bg-muted/10 p-6">
                         {children}
                     </main>
-                    <FilePreviewPanel className="hidden xl:flex" />
+                    <FilePreviewPanel />
                 </div>
             </div>
         </div>
