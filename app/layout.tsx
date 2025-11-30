@@ -23,6 +23,9 @@ import { AuthProvider } from "@/contexts/AuthContext"
 
 import { ProjectProvider } from "@/contexts/ProjectContext"
 
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next"
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -45,6 +48,8 @@ export default function RootLayout({
             </ProjectProvider>
           </AuthProvider>
         </ThemeProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
