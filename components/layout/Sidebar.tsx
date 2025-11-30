@@ -111,7 +111,7 @@ export function Sidebar({ className, collapsed, setCollapsed }: SidebarProps) {
                             return (
                                 <Button
                                     key={item.href}
-                                    variant={pathname === item.href ? "secondary" : "ghost"}
+                                    variant={pathname === item.href ? "default" : "ghost"}
                                     className={cn("w-full", collapsed ? "justify-center px-2" : "justify-start")}
                                     asChild
                                     title={collapsed ? item.title : undefined}
@@ -132,7 +132,13 @@ export function Sidebar({ className, collapsed, setCollapsed }: SidebarProps) {
                         </h2>
                     )}
                     <div className="space-y-1">
-                        <Button variant="ghost" className={cn("w-full", collapsed ? "justify-center px-2" : "justify-start")} asChild title={collapsed ? "Settings" : undefined}>
+                        <Button
+                            key={'/dashboard/settings'}
+                            variant={pathname === '/dashboard/settings' ? "default" : "ghost"}
+                            className={cn("w-full", collapsed ? "justify-center px-2" : "justify-start")}
+                            asChild
+                            title={collapsed ? "Settings" : undefined}
+                        >
                             <Link href="/dashboard/settings">
                                 <Settings className={cn("h-4 w-4", collapsed ? "mr-0" : "mr-2")} />
                                 <span className={cn(collapsed ? "hidden" : "")}>Settings</span>
