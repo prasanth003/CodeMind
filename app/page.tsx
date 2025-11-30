@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
   const { user } = useAuth()
-  const { setProjectData, setAnalysisData, setIsAnalyzing, isAnalyzing, setProjectMetadata } = useProject()
+  const { setIsAnalyzing, isAnalyzing, addProject } = useProject()
   const router = useRouter()
   const [githubUrl, setGithubUrl] = useState("")
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
@@ -55,17 +55,19 @@ export default function LandingPage() {
 
       // 1. Process Zip
       const projectData = await processZipFile(uploadedFile);
-      setProjectData(projectData);
-      if (projectData.metadata) {
-        setProjectMetadata(projectData.metadata);
-      }
 
       // 2. Run Analysis
       const engine = new AnalysisEngine(projectData);
       const analysisResults = await engine.analyze();
-      setAnalysisData(analysisResults);
 
-      // 3. Redirect
+      // 3. Add Project (Persist)
+      await addProject(
+        projectData,
+        analysisResults,
+        projectData.metadata || { name: 'Project', version: '0.0.0' }
+      );
+
+      // 4. Redirect
       router.push("/dashboard/overview");
     } catch (error) {
       console.error("Analysis failed:", error);
@@ -98,17 +100,19 @@ export default function LandingPage() {
 
       // 2. Process Zip
       const projectData = await processZipFile(file);
-      setProjectData(projectData);
-      if (projectData.metadata) {
-        setProjectMetadata(projectData.metadata);
-      }
 
       // 3. Run Analysis
       const engine = new AnalysisEngine(projectData);
       const analysisResults = await engine.analyze();
-      setAnalysisData(analysisResults);
 
-      // 4. Redirect
+      // 4. Add Project (Persist)
+      await addProject(
+        projectData,
+        analysisResults,
+        projectData.metadata || { name: 'Repo', version: '0.0.0' }
+      );
+
+      // 5. Redirect
       router.push("/dashboard/overview");
     } catch (error: any) {
       console.error("GitHub analysis failed:", error);

@@ -8,7 +8,8 @@ import {
     Download,
     User,
     Bell,
-    Plus
+    Plus,
+    ChevronDown
 } from "lucide-react"
 
 import {
@@ -29,7 +30,7 @@ import Link from "next/link"
 
 export function Topbar() {
     const { user, logout } = useAuth()
-    const { projectMetadata } = useProject()
+    const { projectMetadata, projects, currentProjectId, switchProject, projectData, updateAnalysis, isAnalyzing, setIsAnalyzing } = useProject()
     const router = useRouter()
 
     const handleLogout = async () => {
@@ -41,11 +42,61 @@ export function Topbar() {
         }
     }
 
+    const handleReanalyze = async () => {
+        if (!projectData || !currentProjectId) return;
+
+        try {
+            setIsAnalyzing(true);
+            // Dynamic import to avoid server-side issues if any, though Topbar is client component
+            const { AnalysisEngine } = await import("@/lib/analysis/engine");
+
+            const engine = new AnalysisEngine(projectData);
+            const analysisResults = await engine.analyze();
+
+            await updateAnalysis(currentProjectId, analysisResults);
+        } catch (error) {
+            console.error("Re-analysis failed:", error);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
     return (
         <header className="flex h-14 items-center gap-4 border-b bg-background px-6">
             <div className="flex items-center gap-2 font-semibold">
-                <span className="">{projectMetadata?.name || "Project Name"}</span>
-                <Badge variant="outline" className="font-normal">v{projectMetadata?.version || "1.0.0"}</Badge>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-auto p-1 px-2 font-semibold text-base hover:bg-muted">
+                            {projectMetadata?.name || "Select Project"}
+                            <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[200px]">
+                        <DropdownMenuLabel>Projects</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {projects.map((project) => (
+                            <DropdownMenuItem
+                                key={project.id}
+                                onClick={() => switchProject(project.id)}
+                                className="flex items-center justify-between"
+                            >
+                                <span className={project.id === currentProjectId ? "font-bold" : ""}>
+                                    {project.metadata.name}
+                                </span>
+                                {project.id === currentProjectId && (
+                                    <div className="h-2 w-2 rounded-full bg-primary" />
+                                )}
+                            </DropdownMenuItem>
+                        ))}
+                        {projects.length === 0 && (
+                            <div className="p-2 text-sm text-muted-foreground text-center">
+                                No projects found
+                            </div>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Badge variant="outline" className="font-normal">v{projectMetadata?.version || "0.0.0"}</Badge>
                 {projectMetadata?.framework && (
                     <Badge variant="secondary" className="font-normal">
                         {projectMetadata.framework}
@@ -56,16 +107,19 @@ export function Topbar() {
             <div className="ml-auto flex items-center gap-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
-                        <div className="h-2 w-2 rounded-full bg-green-500" />
-                        Analysis Complete
+                        <div className={`h-2 w-2 rounded-full ${isAnalyzing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
+                        {isAnalyzing ? 'Analyzing...' : 'Analysis Complete'}
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon">
-                        <RefreshCw className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                        <Download className="h-4 w-4" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleReanalyze}
+                        disabled={isAnalyzing}
+                        title="Re-analyze Project"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isAnalyzing ? 'animate-spin' : ''}`} />
                     </Button>
                 </div>
                 <UploadModal>
@@ -75,9 +129,6 @@ export function Topbar() {
                     </Button>
                 </UploadModal>
                 <div className="flex items-center gap-2 pl-4 border-l">
-                    <Button variant="ghost" size="icon">
-                        <Bell className="h-4 w-4" />
-                    </Button>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative h-8 w-8 rounded-full">

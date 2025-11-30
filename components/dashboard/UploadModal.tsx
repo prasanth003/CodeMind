@@ -22,7 +22,7 @@ export function UploadModal({ children }: UploadModalProps) {
     const [open, setOpen] = useState(false)
     const [showLoginModal, setShowLoginModal] = useState(false)
     const { user } = useAuth()
-    const { setProjectData, setAnalysisData, setIsAnalyzing, isAnalyzing, setProjectMetadata } = useProject()
+    const { setIsAnalyzing, isAnalyzing, addProject } = useProject()
     const router = useRouter()
     const [githubUrl, setGithubUrl] = useState("")
     const [uploadedFile, setUploadedFile] = useState<File | null>(null)
@@ -56,14 +56,19 @@ export function UploadModal({ children }: UploadModalProps) {
 
             // 1. Process Zip
             const projectData = await processZipFile(uploadedFile);
-            setProjectData(projectData);
 
             // 2. Run Analysis
             const engine = new AnalysisEngine(projectData);
             const analysisResults = await engine.analyze();
-            setAnalysisData(analysisResults);
 
-            // 3. Redirect and Close
+            // 3. Add Project (Persist)
+            await addProject(
+                projectData,
+                analysisResults,
+                projectData.metadata || { name: 'Project', version: '0.0.0' }
+            );
+
+            // 4. Redirect and Close
             setOpen(false);
             router.push("/dashboard/overview");
         } catch (error) {
@@ -97,17 +102,19 @@ export function UploadModal({ children }: UploadModalProps) {
 
             // 2. Process Zip
             const projectData = await processZipFile(file);
-            setProjectData(projectData);
-            if (projectData.metadata) {
-                setProjectMetadata(projectData.metadata);
-            }
 
             // 3. Run Analysis
             const engine = new AnalysisEngine(projectData);
             const analysisResults = await engine.analyze();
-            setAnalysisData(analysisResults);
 
-            // 4. Redirect and Close
+            // 4. Add Project (Persist)
+            await addProject(
+                projectData,
+                analysisResults,
+                projectData.metadata || { name: 'Repo', version: '0.0.0' }
+            );
+
+            // 5. Redirect and Close
             setOpen(false);
             router.push("/dashboard/overview");
         } catch (error: any) {
