@@ -63,6 +63,7 @@ import { ProjectProvider } from "@/contexts/ProjectContext"
 
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -92,6 +93,7 @@ export default function RootLayout({
           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
         )}
         <JsonLd />
+        <Toaster />
       </body>
     </html>
   );

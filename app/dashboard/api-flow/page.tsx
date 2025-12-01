@@ -1,3 +1,5 @@
+"use client"
+
 import { Construction } from "lucide-react"
 
 export default function ApiFlowPage() {
@@ -6,10 +8,9 @@ export default function ApiFlowPage() {
             <div className="p-4 rounded-full bg-muted/50">
                 <Construction className="h-12 w-12 text-muted-foreground" />
             </div>
-            <h2 className="text-2xl font-bold">API Flow Analysis Coming Soon</h2>
+            <h2 className="text-2xl font-bold">API Flow Analysis</h2>
             <p className="text-muted-foreground max-w-md">
-                We are integrating LangChain and GPT to provide detailed API flow analysis.
-                This feature is currently a work in progress.
+                Visualizing API data flow... (Coming Soon)
             </p>
         </div>
     )

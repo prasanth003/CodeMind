@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Folder, FileCode, FileJson, FileType, ChevronRight, ChevronDown, File } from "lucide-react"
 import { useProject } from "@/contexts/ProjectContext"
 import { FileNode } from "@/lib/file-processor"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { AIAnalysisControl } from "@/components/ai/ai-analysis-control"
 
 function FileTreeItem({ node, depth = 0 }: { node: FileNode; depth?: number }) {
     const [isOpen, setIsOpen] = useState(depth < 2); // Open first 2 levels by default
@@ -60,7 +61,42 @@ function FileTreeItem({ node, depth = 0 }: { node: FileNode; depth?: number }) {
 }
 
 export default function OverviewPage() {
-    const { projectData, analysisData } = useProject();
+    const { projectData, analysisData, selectedFile } = useProject();
+    const [fileContent, setFileContent] = useState<string | null>(null);
+    const [isLoadingFile, setIsLoadingFile] = useState(false);
+
+    // Fetch file content when selectedFile changes
+    useEffect(() => {
+        const fetchFileContent = async () => {
+            if (!selectedFile || selectedFile.type === 'directory') {
+                setFileContent(null);
+                return;
+            }
+
+            setIsLoadingFile(true);
+            try {
+                const response = await fetch('/api/files/read', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: selectedFile.path }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setFileContent(data.content);
+                } else {
+                    setFileContent("Failed to load file content.");
+                }
+            } catch (error) {
+                console.error("Error fetching file:", error);
+                setFileContent("Error loading file.");
+            } finally {
+                setIsLoadingFile(false);
+            }
+        };
+
+        fetchFileContent();
+    }, [selectedFile]);
 
     if (!projectData) {
         return (
@@ -86,7 +122,7 @@ export default function OverviewPage() {
     const totalDirs = countDirs(projectData.tree) - 1; // Subtract root
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 h-[calc(100vh-100px)] flex flex-col">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Project Overview</h1>
                 <p className="text-muted-foreground">
@@ -94,7 +130,7 @@ export default function OverviewPage() {
                 </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 shrink-0">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">TypeScript/JS Files</CardTitle>
@@ -139,16 +175,63 @@ export default function OverviewPage() {
                 </Card>
             </div>
 
-            <Card className="col-span-4">
-                <CardHeader>
-                    <CardTitle>File Structure</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border p-4 font-mono text-sm max-h-[500px] overflow-auto">
-                        <FileTreeItem node={projectData.tree} />
-                    </div>
-                </CardContent>
-            </Card>
+            <div className="grid grid-cols-12 gap-6 flex-1 min-h-0">
+                <Card className="col-span-4 flex flex-col min-h-0">
+                    <CardHeader className="shrink-0">
+                        <CardTitle>File Structure</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-auto min-h-0 p-2">
+                        <div className="font-mono text-sm">
+                            <FileTreeItem node={projectData.tree} />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="col-span-8 flex flex-col min-h-0">
+                    <CardHeader className="shrink-0 flex flex-row items-center justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                            {selectedFile ? (
+                                <>
+                                    <FileCode className="h-5 w-5" />
+                                    {selectedFile.name}
+                                </>
+                            ) : (
+                                "File Viewer"
+                            )}
+                        </CardTitle>
+                        {selectedFile && fileContent && (
+                            <AIAnalysisControl
+                                code={fileContent}
+                                filePath={selectedFile.path}
+                                context={`Project: ${projectData.tree.name}`}
+                            />
+                        )}
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-auto min-h-0 p-0 bg-muted/30 relative">
+                        {selectedFile ? (
+                            isLoadingFile ? (
+                                <div className="flex items-center justify-center h-full text-muted-foreground">
+                                    Loading content...
+                                </div>
+                            ) : fileContent ? (
+                                <div className="absolute inset-0 overflow-auto p-4">
+                                    <pre className="text-sm font-mono whitespace-pre-wrap">
+                                        {fileContent}
+                                    </pre>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-muted-foreground">
+                                    Unable to read file content
+                                </div>
+                            )
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-muted-foreground">
+                                Select a file to view content and analyze
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     )
 }
