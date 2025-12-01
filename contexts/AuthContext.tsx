@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return
             }
             await signInWithPopup(auth, provider)
-            router.push("/dashboard")
+            // Let the calling component handle navigation
         } catch (error) {
             console.error("Error signing in with Google", error)
         }
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return
             }
             await signInWithPopup(auth, provider)
-            router.push("/dashboard")
+            // Let the calling component handle navigation
         } catch (error) {
             console.error("Error signing in with Github", error)
         }

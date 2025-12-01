@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,31 @@ export default function LandingPage() {
   const [githubUrl, setGithubUrl] = useState("")
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [pendingAnalysisType, setPendingAnalysisType] = useState<'upload' | 'github' | null>(null)
+
+  // Auto-trigger analysis after successful login
+  useEffect(() => {
+    const triggerPendingAnalysis = async () => {
+      if (!user || !pendingAnalysisType || isAnalyzing) return;
+
+      // Clear pending state immediately to prevent re-triggers
+      const analysisType = pendingAnalysisType;
+      setPendingAnalysisType(null);
+      setShowLoginModal(false);
+
+      // Small delay to ensure modal closes smoothly
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (analysisType === 'upload' && uploadedFile) {
+        handleAnalyze();
+      } else if (analysisType === 'github' && githubUrl) {
+        handleGithubAnalyze();
+      }
+    };
+
+    triggerPendingAnalysis();
+  }, [user, pendingAnalysisType, isAnalyzing, uploadedFile, githubUrl]);
+
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -56,6 +81,7 @@ export default function LandingPage() {
 
     // Check if user is logged in
     if (!user) {
+      setPendingAnalysisType('upload')
       setShowLoginModal(true)
       return
     }
@@ -92,6 +118,7 @@ export default function LandingPage() {
 
     // Check if user is logged in
     if (!user) {
+      setPendingAnalysisType('github')
       setShowLoginModal(true)
       return
     }
