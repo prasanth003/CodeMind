@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import {
     Dialog,
     DialogContent,
@@ -124,28 +125,30 @@ export function AIAnalysisControl({ code, filePath, context }: AIAnalysisControl
             </DropdownMenu>
 
             <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-purple-500" />
-                        AI Analysis Result
-                        {isLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {analysisType === "flow" && "Visualizing API Flow..."}
-                        {analysisType === "refactor" && "Refactoring Suggestions..."}
-                        {analysisType === "docs" && "Generating Documentation..."}
-                    </DialogDescription>
-                </DialogHeader>
+                <AuthGuard>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Sparkles className="h-5 w-5 text-purple-500" />
+                            AI Analysis Result
+                            {isLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {analysisType === "flow" && "Visualizing API Flow..."}
+                            {analysisType === "refactor" && "Refactoring Suggestions..."}
+                            {analysisType === "docs" && "Generating Documentation..."}
+                        </DialogDescription>
+                    </DialogHeader>
 
-                <div className="mt-4 prose dark:prose-invert max-w-none">
-                    {result ? (
-                        <ReactMarkdown>{result}</ReactMarkdown>
-                    ) : (
-                        <div className="text-muted-foreground text-sm">
-                            {isLoading ? "Analyzing..." : "Select an option to start analysis."}
-                        </div>
-                    )}
-                </div>
+                    <div className="mt-4 prose dark:prose-invert max-w-none">
+                        {result ? (
+                            <ReactMarkdown>{result}</ReactMarkdown>
+                        ) : (
+                            <div className="text-muted-foreground text-sm">
+                                {isLoading ? "Analyzing..." : "Select an option to start analysis."}
+                            </div>
+                        )}
+                    </div>
+                </AuthGuard>
             </DialogContent>
         </Dialog>
     );

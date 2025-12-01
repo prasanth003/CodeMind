@@ -9,7 +9,8 @@ import {
     GithubAuthProvider,
     signOut
 } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { auth, db } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
 
 interface AuthContextType {
@@ -18,6 +19,8 @@ interface AuthContextType {
     signInWithGoogle: () => Promise<void>
     signInWithGithub: () => Promise<void>
     logout: () => Promise<void>
+    isSkipped: boolean
+    skipLogin: (redirect?: boolean) => void
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType)
@@ -29,12 +32,25 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
+    const [isSkipped, setIsSkipped] = useState(false)
     const router = useRouter()
+
+    useEffect(() => {
+        // Check session storage for skipped state
+        const skipped = sessionStorage.getItem("isSkipped") === "true"
+        if (skipped) {
+            setIsSkipped(true)
+        }
+    }, [])
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setUser(user)
             setLoading(false)
+            if (user) {
+                // If user logs in, we might want to reset skip state or associate tracking
+                setIsSkipped(false)
+            }
         })
 
         return () => unsubscribe()
@@ -71,6 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = async () => {
         try {
             await signOut(auth)
+            setIsSkipped(false)
+            sessionStorage.removeItem("isSkipped")
+
             // Clear all storage
             localStorage.clear()
             sessionStorage.clear()
@@ -92,8 +111,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
+    const skipLogin = (redirect = true) => {
+        setIsSkipped(true)
+        sessionStorage.setItem("isSkipped", "true")
+        if (redirect) {
+            router.push("/dashboard/overview")
+        }
+    }
+
     return (
-        <AuthContext.Provider value={{ user, loading, signInWithGoogle, signInWithGithub, logout }}>
+        <AuthContext.Provider value={{ user, loading, signInWithGoogle, signInWithGithub, logout, isSkipped, skipLogin }}>
             {children}
         </AuthContext.Provider>
     )

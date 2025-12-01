@@ -9,10 +9,11 @@ import { useAuth } from "@/contexts/AuthContext"
 interface LoginModalProps {
     open: boolean
     onOpenChange: (open: boolean) => void
+    onSkip?: () => void
 }
 
-export function LoginModal({ open, onOpenChange }: LoginModalProps) {
-    const { signInWithGoogle } = useAuth()
+export function LoginModal({ open, onOpenChange, onSkip }: LoginModalProps) {
+    const { signInWithGoogle, skipLogin } = useAuth()
 
     const handleLogin = async () => {
         try {
@@ -67,6 +68,30 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                     >
                         <Mail className="mr-2 h-5 w-5" />
                         Continue with Google
+                    </Button>
+                    <div className="relative my-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                                Or
+                            </span>
+                        </div>
+                    </div>
+                    <Button
+                        variant="outline"
+                        onClick={() => {
+                            if (onSkip) {
+                                onSkip()
+                            } else {
+                                skipLogin()
+                            }
+                            onOpenChange(false)
+                        }}
+                        className="w-full"
+                    >
+                        Skip for now
                     </Button>
                 </div>
             </DialogContent>

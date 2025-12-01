@@ -7,27 +7,30 @@ import { Footer } from "@/components/layout/Footer"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { useTrafficTracking } from "@/hooks/useTrafficTracking"
 
 export default function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const { user, loading } = useAuth()
+    const { user, loading, isSkipped } = useAuth()
     const router = useRouter()
     const [collapsed, setCollapsed] = useState(false)
 
+    useTrafficTracking()
+
     useEffect(() => {
-        if (!loading && !user) {
+        if (!loading && !user && !isSkipped) {
             router.push("/")
         }
-    }, [user, loading, router])
+    }, [user, loading, router, isSkipped])
 
     if (loading) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>
     }
 
-    if (!user) {
+    if (!user && !isSkipped) {
         return null
     }
 

@@ -32,24 +32,33 @@ export default function SettingsPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-16 w-16">
-                                <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "@user"} />
-                                <AvatarFallback className="text-lg">{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <p className="font-medium">{user?.displayName || "User"}</p>
-                                <p className="text-sm text-muted-foreground">{user?.email}</p>
+                        {user ? (
+                            <>
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="h-16 w-16">
+                                        <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "@user"} />
+                                        <AvatarFallback className="text-lg">{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-medium">{user?.displayName || "User"}</p>
+                                        <p className="text-sm text-muted-foreground">{user?.email}</p>
+                                    </div>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">Display Name</Label>
+                                    <Input id="name" value={user?.displayName || ""} disabled />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="email">Email</Label>
+                                    <Input id="email" value={user?.email || ""} disabled />
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-center py-6 text-muted-foreground">
+                                <p>You have not logged in.</p>
+                                <p className="text-sm mt-2">Log in to see your profile information.</p>
                             </div>
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="name">Display Name</Label>
-                            <Input id="name" value={user?.displayName || ""} disabled />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" value={user?.email || ""} disabled />
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
 

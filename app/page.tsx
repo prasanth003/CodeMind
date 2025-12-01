@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { LoginButtons } from "@/components/auth/LoginButtons"
+
 import { LoginModal } from "@/components/auth/LoginModal"
 import { useAuth } from "@/contexts/AuthContext"
 import { useProject } from "@/contexts/ProjectContext"
@@ -29,12 +29,13 @@ import { AnalysisEngine } from "@/lib/analysis/engine"
 import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
-  const { user, loading, logout } = useAuth()
+  const { user, loading, logout, isSkipped, skipLogin } = useAuth()
   const { setIsAnalyzing, isAnalyzing, addProject } = useProject()
   const router = useRouter()
   const [githubUrl, setGithubUrl] = useState("")
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [retryAction, setRetryAction] = useState<(() => Promise<void>) | null>(null)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -51,11 +52,12 @@ export default function LandingPage() {
     maxFiles: 1
   })
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (bypassAuth = false) => {
     if (!uploadedFile) return;
 
-    // Check if user is logged in
-    if (!user) {
+    // Check if user is logged in or skipped
+    if (!user && !isSkipped && !bypassAuth) {
+      setRetryAction(() => () => handleAnalyze(true))
       setShowLoginModal(true)
       return
     }
@@ -87,11 +89,12 @@ export default function LandingPage() {
     }
   };
 
-  const handleGithubAnalyze = async () => {
+  const handleGithubAnalyze = async (bypassAuth = false) => {
     if (!githubUrl) return;
 
-    // Check if user is logged in
-    if (!user) {
+    // Check if user is logged in or skipped
+    if (!user && !isSkipped && !bypassAuth) {
+      setRetryAction(() => () => handleGithubAnalyze(true))
       setShowLoginModal(true)
       return
     }
@@ -132,9 +135,18 @@ export default function LandingPage() {
     }
   };
 
+  const handleSkip = () => {
+    skipLogin(false) // Don't redirect
+    setShowLoginModal(false)
+    if (retryAction) {
+      retryAction()
+      setRetryAction(null)
+    }
+  }
+
   return (
     <>
-      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
+      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} onSkip={handleSkip} />
       <div className="flex min-h-screen flex-col">
         <header className="flex h-14 items-center px-4 lg:px-6">
           <div className="flex items-center gap-2">
@@ -146,23 +158,23 @@ export default function LandingPage() {
               About
             </Link>
             {loading ? (
-              <div className="h-8 w-20 bg-muted animate-pulse rounded-md" />
+              <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
             ) : user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "@user"} />
-                      <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
+                      <AvatarImage src={user.photoURL || ""} alt={user.displayName || "User"} />
+                      <AvatarFallback>{user.displayName?.charAt(0) || "U"}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user?.displayName || "User"}</p>
+                      <p className="text-sm font-medium leading-none">{user.displayName || "User"}</p>
                       <p className="text-xs leading-none text-muted-foreground">
-                        {user?.email || "user@example.com"}
+                        {user.email}
                       </p>
                     </div>
                   </DropdownMenuLabel>
@@ -191,6 +203,19 @@ export default function LandingPage() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : isSkipped ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary to-purple-600" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuItem onClick={() => setShowLoginModal(true)}>
+                    Log in
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Button variant="ghost" size="sm" onClick={() => setShowLoginModal(true)}>
                 Log in
@@ -199,7 +224,7 @@ export default function LandingPage() {
             <ModeToggle />
           </nav>
         </header>
-        <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-18 bg-gradient-to-b from-background to-muted/20">
+        <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-20 bg-gradient-to-b from-background to-muted/20">
           <div className="text-center space-y-4 max-w-3xl mx-auto mb-12">
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight lg:text-7xl">
               Analyze your codebase <br />
@@ -252,7 +277,7 @@ export default function LandingPage() {
                     <Button
                       disabled={!uploadedFile || isAnalyzing}
                       className="w-full"
-                      onClick={handleAnalyze}
+                      onClick={() => handleAnalyze(false)}
                     >
                       {isAnalyzing ? (
                         <>
@@ -344,7 +369,7 @@ export default function LandingPage() {
                       <Button
                         disabled={!githubUrl || isAnalyzing}
                         className="w-full"
-                        onClick={handleGithubAnalyze}
+                        onClick={() => handleGithubAnalyze(false)}
                       >
                         {isAnalyzing ? (
                           <>
