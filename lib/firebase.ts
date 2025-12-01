@@ -1,4 +1,5 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -8,31 +9,21 @@ const firebaseConfig = {
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-import { FirebaseApp } from "firebase/app";
-import { Auth } from "firebase/auth";
-
 // Initialize Firebase
-let app: FirebaseApp | null;
-let auth: Auth;
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const auth = getAuth(app);
 
-if (typeof window !== "undefined" && !firebaseConfig.apiKey) {
-    console.warn("Firebase API keys are missing. Authentication will not work.");
+// Initialize Analytics (only on client side)
+let analytics;
+if (typeof window !== 'undefined') {
+    isSupported().then((supported) => {
+        if (supported) {
+            analytics = getAnalytics(app);
+        }
+    });
 }
 
-if (firebaseConfig.apiKey) {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    auth = getAuth(app);
-} else {
-    // Mock for build/dev without keys
-    app = null;
-    auth = {
-        currentUser: null,
-        onAuthStateChanged: () => () => { },
-        signInWithPopup: () => Promise.reject("No API Key"),
-        signOut: () => Promise.resolve()
-    } as any;
-}
-
-export { app, auth };
+export { app, analytics, auth };
