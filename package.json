@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sonar": "sonar-scanner",
+    "sonar": "export $(grep -v '^#' .env.local | xargs) && sonar-scanner",
     "sonar:report": "echo 'SonarQube analysis complete. View results at your SonarQube server.'"
   },
   "dependencies": {
