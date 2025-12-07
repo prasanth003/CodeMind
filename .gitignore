@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SonarQube
+.scannerwork/
+.sonar/
+coverage/
+eslint-report.json
